@@ -1,5 +1,7 @@
 # corpuskit
 
+[![Release](https://img.shields.io/github/v/release/North-web-dev/corpuskit?sort=semver)](https://github.com/North-web-dev/corpuskit/releases) [![Go Reference](https://pkg.go.dev/badge/github.com/North-web-dev/corpuskit.svg)](https://pkg.go.dev/github.com/North-web-dev/corpuskit) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Go](https://img.shields.io/github/go-mod/go-version/North-web-dev/corpuskit)
+
 **One pure-Go binary that builds a full-text search index (SQLite FTS5 + BM25) over a website or a folder of documents — then searches it.**
 
 corpuskit politely crawls a site or ingests a directory, extracts readable text, and stores every document **with its source URL or file path**. Search is ranked with BM25 and each result links straight back to the original. It ships as a single static binary (`CGO_ENABLED=0`, no system libraries), so it drops onto a server or into a scratch container with nothing to install.

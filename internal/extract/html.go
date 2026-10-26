@@ -3,6 +3,7 @@ package extract
 
 import (
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -66,8 +67,31 @@ func HTML(doc string) (HTMLResult, error) {
 		}
 	}
 	walk(root, false)
+	res.Title = CleanTitle(res.Title)
 	res.Text = normalizeSpace(sb.String())
 	return res, nil
+}
+
+// StripControl removes control characters (including the ESC byte used for
+// ANSI terminal escapes) from s, keeping only newlines and tabs. Indexed text
+// is attacker-controlled third-party content, so this runs at extraction time
+// to keep stored titles and bodies safe to print to a terminal or emit as JSON.
+func StripControl(s string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\t' {
+			return r
+		}
+		if r == unicode.ReplacementChar || unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, s)
+}
+
+// CleanTitle strips control characters and collapses all whitespace in a
+// single-line title.
+func CleanTitle(s string) string {
+	return strings.Join(strings.Fields(StripControl(s)), " ")
 }
 
 func isBlock(a atom.Atom) bool {
@@ -97,7 +121,7 @@ func textOf(n *html.Node) string {
 // normalizeSpace collapses runs of whitespace, trimming each line and dropping
 // blank lines, so the stored text is compact but keeps paragraph breaks.
 func normalizeSpace(s string) string {
-	lines := strings.Split(s, "\n")
+	lines := strings.Split(StripControl(s), "\n")
 	var out []string
 	for _, ln := range lines {
 		if f := strings.Join(strings.Fields(ln), " "); f != "" {

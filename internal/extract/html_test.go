@@ -35,6 +35,40 @@ func TestHTMLExtract(t *testing.T) {
 	}
 }
 
+func TestHTMLStripsControlBytes(t *testing.T) {
+	// A hostile page title/body carrying an ANSI escape and a BEL must come
+	// out with the control bytes removed, so printing to a terminal is safe.
+	doc := "<title>Evil\x1b[31mTitle\x07</title><body><p>body\x1b]0;pwned\x07text</p></body>"
+	res, err := HTML(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The ESC byte (which arms an ANSI sequence) must be gone; the inert
+	// leftover text is harmless.
+	if strings.ContainsRune(res.Title, '\x1b') || strings.ContainsRune(res.Title, '\x07') {
+		t.Fatalf("title still contains control bytes: %q", res.Title)
+	}
+	if !strings.Contains(res.Title, "Evil") || !strings.Contains(res.Title, "Title") {
+		t.Fatalf("title lost its text: %q", res.Title)
+	}
+	if strings.ContainsRune(res.Text, '\x1b') || strings.ContainsRune(res.Text, '\x07') {
+		t.Fatalf("text still contains control bytes: %q", res.Text)
+	}
+}
+
+func TestStripControl(t *testing.T) {
+	in := "safe\x1b[2Jtext\twith\nnewline\x00and\x07bell"
+	got := StripControl(in)
+	for _, bad := range []rune{'\x1b', '\x00', '\x07'} {
+		if strings.ContainsRune(got, bad) {
+			t.Errorf("StripControl kept %q in %q", bad, got)
+		}
+	}
+	if !strings.Contains(got, "\t") || !strings.Contains(got, "\n") {
+		t.Errorf("StripControl dropped tab/newline: %q", got)
+	}
+}
+
 func TestHTMLNoTitle(t *testing.T) {
 	res, err := HTML(`<html><body><p>hello world</p></body></html>`)
 	if err != nil {

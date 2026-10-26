@@ -142,6 +142,12 @@ func cmdIngest(ctx context.Context, args []string) error {
 		if err != nil {
 			return err
 		}
+		// Skip symlinks so ingest never follows a link out of the root
+		// (WalkDir does not descend symlinked directories, and this closes
+		// the symlinked-file case).
+		if d.Type()&os.ModeSymlink != 0 {
+			return nil
+		}
 		if d.IsDir() || !extract.SupportedExt(path) {
 			return nil
 		}
@@ -219,15 +225,19 @@ func cmdSearch(ctx context.Context, args []string) error {
 		return enc.Encode(out)
 	}
 	if len(results) == 0 {
-		fmt.Printf("no results for %q\n", query)
+		fmt.Printf("no results for %q\n", extract.StripControl(query))
 		return nil
 	}
+	// Results carry indexed third-party content; strip control bytes (ANSI
+	// escapes) before writing to the terminal. source is included because an
+	// ingested file path is stored verbatim and may contain control bytes.
 	for i, r := range results {
-		title := r.Title
+		title := extract.StripControl(r.Title)
 		if title == "" {
 			title = "(untitled)"
 		}
-		fmt.Printf("%d. %s  [bm25 %.4f]\n   %s\n   %s\n\n", i+1, title, r.Score, r.Source, r.Snippet)
+		fmt.Printf("%d. %s  [bm25 %.4f]\n   %s\n   %s\n\n",
+			i+1, title, r.Score, extract.StripControl(r.Source), extract.StripControl(r.Snippet))
 	}
 	return nil
 }

@@ -39,7 +39,7 @@ func File(path string) (FileResult, error) {
 		if err != nil {
 			return FileResult{}, err
 		}
-		return FileResult{Title: titleFromText(string(b), path), Text: normalizeSpace(string(b)), Extractor: "text"}, nil
+		return FileResult{Title: CleanTitle(titleFromText(string(b), path)), Text: normalizeSpace(string(b)), Extractor: "text"}, nil
 	case ".html", ".htm":
 		b, err := os.ReadFile(path)
 		if err != nil {
@@ -53,7 +53,7 @@ func File(path string) (FileResult, error) {
 		if title == "" {
 			title = filepath.Base(path)
 		}
-		return FileResult{Title: title, Text: r.Text, Extractor: "html"}, nil
+		return FileResult{Title: CleanTitle(title), Text: r.Text, Extractor: "html"}, nil
 	case ".pdf":
 		return pdfFile(path)
 	default:
@@ -67,7 +67,7 @@ func File(path string) (FileResult, error) {
 func pdfFile(path string) (res FileResult, err error) {
 	res.Extractor = "pdf"
 	res.BestOnly = true
-	res.Title = filepath.Base(path)
+	res.Title = CleanTitle(filepath.Base(path))
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("pdf extraction failed: %v", r)
